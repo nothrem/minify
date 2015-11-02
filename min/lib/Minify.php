@@ -326,8 +326,14 @@ class Minify {
             $headers['Content-Encoding'] = $contentEncoding;
         }
         if (self::$_options['encodeOutput'] && $sendVary) {
-            $headers['Vary'] = 'Accept-Encoding';
-        }
+			if (self::$_options['contentType'] === 'text/css') {
+				$headers['Vary'] = 'Accept-Encoding, DPR';
+				$headers['Key'] = 'DPR;partition=1.0:1.5:2.0:3.0';
+			}
+			else {
+	            $headers['Vary'] = 'Accept-Encoding';
+	        }
+		}
 
         if (! self::$_options['quiet']) {
             // output headers & content
@@ -496,6 +502,11 @@ class Minify {
                 $source = self::$_controller->sources[$i];
                 /* @var Minify_Source $source */
                 $sourceContent = $source->getContent();
+
+				//call preprocessor
+				if (self::$_options['preprocessor']) {
+					$sourceContent = call_user_func(self::$_options['preprocessor'], $sourceContent, $type);
+				}
 
                 // allow the source to override our minifier and options
                 $minifier = (null !== $source->minifier)

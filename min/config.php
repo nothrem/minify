@@ -27,7 +27,7 @@ $min_builderPassword = 'admin';
  * If you want to use a custom error logger, set this to your logger
  * instance. Your object should have a method log(string $message).
  */
-$min_errorLogger = false;
+$min_errorLogger = true;
 
 
 /**
@@ -42,7 +42,7 @@ $min_errorLogger = false;
  * In 'debug' mode, Minify combines files with no minification and adds comments
  * to indicate line #s of the original files.
  */
-$min_allowDebugFlag = false;
+$min_allowDebugFlag = true;
 
 
 /**
@@ -52,6 +52,8 @@ $min_allowDebugFlag = false;
 //$min_cachePath = 'c:\\WINDOWS\\Temp';
 //$min_cachePath = '/tmp';
 //$min_cachePath = preg_replace('/^\\d+;/', '', session_save_path());
+$min_cachePath = dirname(__FILE__) . '/../../cache'; // folder is /application/../cache/ but here is relative to /public/min/ folder
+
 /**
  * To use APC/Memcache/ZendPlatform for cache storage, require the class and
  * set $min_cachePath to an instance. Example below:
@@ -90,7 +92,7 @@ $min_cacheFileLocking = true;
  * move all @imports to the top of the output. Note that moving @imports could 
  * affect CSS values (which is why this option is disabled by default).
  */
-$min_serveOptions['bubbleCssImports'] = false;
+$min_serveOptions['bubbleCssImports'] = true;
 
 
 /**
@@ -120,7 +122,7 @@ $min_serveOptions['maxAge'] = 1800;
  * 
  * // = shortcut for DOCUMENT_ROOT 
  */
-//$min_serveOptions['minApp']['allowDirs'] = array('//js', '//css');
+$min_serveOptions['minApp']['allowDirs'] = array('//js', '//css');
 
 /**
  * Set to true to disable the "f" GET parameter for specifying files.
@@ -179,6 +181,67 @@ $min_uploaderHoursBehind = 0;
  */
 $min_libPath = dirname(__FILE__) . '/lib';
 
+//Workaround for missing Client Hints on iOS and non-webkit browsers (read value from Cookie and simulate HTTP header)
+if (!array_key_exists('HTTP_DPR', $_SERVER) && array_key_exists('DPR', $_COOKIE)) { $_SERVER['HTTP_DPR'] = $_COOKIE['DPR']; }
+
+/**
+ * Process loaded files with following function
+ */
+$min_serveOptions['preprocessor'] = 'minify_processInput';
+function minify_processInput($data, $type) {
+	if (Minify::TYPE_CSS === $type) {
+		$success = include_once 'CssCrush/CssCrush.php';
+		if ($success) {
+			$options = array(
+				'doc_root' => $_SERVER['DOCUMENT_ROOT'],
+				//helper plugins
+				'plugins' => array(
+				//	'ie-inline-block', //support for IE7
+				//	'ie-opacity',      //support for IE8
+					'initial',         //replace 'initial' keyword with actual value
+				//	'legacy-flexbox',  //prefixing of legacy flex-box (display:box)
+					'property-sorter', //sort CSS definitions inside rules
+					'rem',             //backward compatibility for REM units
+					),
+
+				//plugin settings
+				'settings' => array(
+					'rem-all' => 'yes', //convert all REM values; default is font-size only
+				),
+
+				//features that are already done by PHPmin:
+				'minify' => false,
+				'versioning' => false,
+				'cache' => false,
+			);
+			$len = strlen(trim($data));
+			$output = csscrush_string($data, $options); //CssCrush returns empty string if CSS file is not valid (e.g. contains mismatched brackets)
+			if ($len && strlen(trim($output))) {
+				$data = $output;
+			}
+			else {
+				throw new Exception('Invalid CSS file. Content: ' . substr($data, 0, 150) . '...');
+			}
+		}
+	}
+	return $data;
+};
+
+
+/**
+ * Process minified files with following function
+ */
+$min_serveOptions['postprocessor'] = 'minify_processOutput';
+function minify_processOutput($data, $type) {
+	if (Minify::TYPE_CSS === $type) {
+			$success = include_once 'InlineImages.php';
+			if ($success) {
+					$helper = new InlineImages($_SERVER['DOCUMENT_ROOT']);
+					$data = $helper->process($data);
+			}
+	}
+	return $data;
+};
 
 // try to disable output_compression (may not have an effect)
 ini_set('zlib.output_compression', '0');

@@ -127,13 +127,16 @@ class HTTP_ConditionalGet {
         $etagAppend = '';
         if (isset($spec['encoding'])) {
             $this->_stripEtag = true;
-            $this->_headers['Vary'] = 'Accept-Encoding';
+			$this->_headers['Vary'] = 'Accept-Encoding, DPR';
             if ('' !== $spec['encoding']) {
                 if (0 === strpos($spec['encoding'], 'x-')) {
                     $spec['encoding'] = substr($spec['encoding'], 2);
                 }
                 $etagAppend = ';' . substr($spec['encoding'], 0, 2);
             }
+			if (array_key_exists('HTTP_DPR', $_SERVER)) {
+				$etagAppend .= ';DPR' . $_SERVER['HTTP_DPR'];
+			}
         }
         if (isset($spec['lastModifiedTime'])) {
             $this->_setLastModified($spec['lastModifiedTime']);

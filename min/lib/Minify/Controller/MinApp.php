@@ -41,6 +41,17 @@ class Minify_Controller_MinApp extends Minify_Controller_Base {
         $sources = array();
         $this->selectionId = '';
         $firstMissingResource = null;
+        $dpr = (array_key_exists('HTTP_DPR', $_SERVER) 
+            ? $_SERVER['HTTP_DPR'] * 10 
+            : (array_key_exists('dpr', $_GET) 
+                ? $_GET['dpr'] 
+                : false
+            )
+        );
+        if ($dpr) {
+            $this->selectionId .= 'dpr=' . $dpr . "_";
+        }
+
         if (isset($_GET['g'])) {
             // add group(s)
             $this->selectionId .= 'g=' . $_GET['g'];
