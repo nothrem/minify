@@ -1,4 +1,6 @@
 <?php
+die('Disabled: use this only for testing');
+
 /**
  * Fetch and minify a URL (auto-detect HTML/JS/CSS)
  */
@@ -93,16 +95,17 @@ if (isset($_POST['url'])) {
     
     $sourceSpec['content'] = $content;
     $sourceSpec['id'] = 'foo';
+    $sourceSpec['contentType'] = $type['minify'];
     
     if ($type['minify'] === 'text/html') {
         if (isset($_POST['minJs'])) {
             $sourceSpec['minifyOptions']['jsMinifier'] = array('JSMin\\JSMin', 'minify');
         }
         if (isset($_POST['minCss'])) {
-            $sourceSpec['minifyOptions']['cssMinifier'] = array('Minify_CSS', 'minify');
+            $sourceSpec['minifyOptions']['cssMinifier'] = array('Minify_CSSmin', 'minify');
         }
     }
-       
+
     $source = new Minify_Source($sourceSpec);
     
     $sendType = 'text/plain';
@@ -115,10 +118,11 @@ if (isset($_POST['url'])) {
     header('Content-Type: ' . $sendType);
     // using combine instead of serve because it allows us to specify a
     // Content-Type like application/xhtml+xml IF we need to
+
+    $minify = new Minify(new Minify_Cache_Null());
+
     try {
-        echo Minify::combine(array($source), array(
-            'contentType' => $type['minify']
-        ));
+        echo $minify->combine(array($source));
     } catch (Exception $e) {
         header('Content-Type: text/html;charset=utf-8');
         echo htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
@@ -135,8 +139,7 @@ $ua = get_magic_quotes_gpc()
 ?>
 <!DOCTYPE html><head><title>Minify URL</title></head>
 
-<p><strong>Warning! Please do not place this application on a public site.</strong> This should be used
-only for testing.</p>
+<p><strong>Warning! Please do not place this application on a public site.</strong> This should be used only for testing.</p>
 
 <h1>Fetch and Minify a URL</h1>
 <p>This tool will retrieve the contents of a URL and minify it. 

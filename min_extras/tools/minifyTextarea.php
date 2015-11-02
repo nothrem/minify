@@ -1,4 +1,5 @@
 <?php
+die('Disabled: use this only for testing');
 
 require __DIR__ . '/../../bootstrap.php';
 
@@ -34,12 +35,17 @@ if (isset($_POST['method']) && $_POST['method'] === 'Minify and serve') {
         $sourceSpec['minifyOptions']['jsMinifier'] = array('JSMin\\JSMin', 'minify');
     }
     if (isset($_POST['minCss'])) {
-        $sourceSpec['minifyOptions']['cssMinifier'] = array('Minify_CSS', 'minify');
+        $sourceSpec['minifyOptions']['cssMinifier'] = array('Minify_CSSmin', 'minify');
     }
     $source = new Minify_Source($sourceSpec);
     Minify_Logger::setLogger(FirePHP::getInstance(true));
+
+    $env = new Minify_Env();
+    $controller = new Minify_Controller_Files($env, new Minify_Source_Factory($env));
+    $minify = new Minify(new Minify_Cache_Null());
+
     try {
-        Minify::serve('Files', array(
+        $minify->serve($controller, array(
             'files' => $source
             ,'contentType' => Minify::TYPE_HTML
         ));
@@ -50,14 +56,14 @@ if (isset($_POST['method']) && $_POST['method'] === 'Minify and serve') {
 }
 
 $tpl = array();
-$tpl['classes'] = array('Minify_HTML', 'JSMin\\JSMin', 'Minify_CSS', 'Minify_CSSmin', 'JSMinPlus');
+$tpl['classes'] = array('Minify_HTML', 'JSMin\\JSMin', 'Minify_CSS');
 
 if (isset($_POST['method']) && in_array($_POST['method'], $tpl['classes'])) {
 
     $args = array($textIn);
     if ($_POST['method'] === 'Minify_HTML') {
         $args[] = array(
-            'cssMinifier' => array('Minify_CSS', 'minify')
+            'cssMinifier' => array('Minify_CSSmin', 'minify')
             ,'jsMinifier' => array('JSMin\\JSMin', 'minify')
         );
     }
@@ -112,6 +118,9 @@ function sendPage($vars) {
     header('Content-Type: text/html; charset=utf-8');
 ?>
 <!DOCTYPE html><head><title>minifyTextarea</title></head>
+
+<p><strong>Warning! Please do not place this application on a public site.</strong> This should be used only for testing.</p>
+
 <?php
 if (isset($vars['exceptionMsg'])) {
     echo $vars['exceptionMsg'];

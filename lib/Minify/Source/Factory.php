@@ -18,8 +18,8 @@ class Minify_Source_Factory {
     protected $env;
 
     /**
-     * @param Minify_Env $env
-     * @param array      $options
+     * @param Minify_Env            $env
+     * @param array                 $options
      *
      *   noMinPattern        : Pattern matched against basename of the filepath (if present). If the pattern
      *                         matches, Minify will try to avoid re-compressing the resource.
@@ -40,6 +40,8 @@ class Minify_Source_Factory {
      *                         jumps ahead by a number of hours, set this variable to that number. If the mtime
      *                         moves back, this should not be needed.
      *
+     * @param Minify_CacheInterface $cache Optional cache for handling .less files.
+     *
      */
     public function __construct(Minify_Env $env, array $options = array(), Minify_CacheInterface $cache = null)
     {
@@ -56,7 +58,9 @@ class Minify_Source_Factory {
         // resolve // in allowDirs
         $docRoot = $env->getDocRoot();
         foreach ($this->options['allowDirs'] as $i => $dir) {
-            $this->options['allowDirs'][$i] = $docRoot . substr($dir, 1);
+            if (0 === strpos($dir, '//')) {
+                $this->options['allowDirs'][$i] = $docRoot . substr($dir, 1);
+            }
         }
 
         if ($this->options['fileChecker'] && !is_callable($this->options['fileChecker'])) {

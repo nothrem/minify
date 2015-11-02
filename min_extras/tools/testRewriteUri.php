@@ -1,4 +1,5 @@
 <?php
+die('Disabled: use this only for testing');
 
 require __DIR__ . '/../../bootstrap.php';
 
@@ -51,6 +52,7 @@ if (isset($_POST['css'])) {
 
 ?>
 <h1>Test <code>Minify_CSS_UriRewriter::rewrite()</code></h1>
+<p><strong>Warning! Please do not place this application on a public site.</strong> This should be used only for testing.</p>
 <form action="" method="post">
 <div><label>document root: <?php echo getInput('docRoot', $defaultDocRoot); ?></label></div>
 <div><label>symlink: <?php echo getInput('symLink', $defaultSymLink); ?> => <?php echo getInput('symTarget', $defaultSymTarget); ?></label></div>

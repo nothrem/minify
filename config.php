@@ -115,9 +115,9 @@ $min_serveOptions['maxAge'] = 1800;
 
 
 /**
- * To use CSSmin (Túbal Martín's port of the YUI CSS compressor), uncomment the following line:
+ * To use the CSS compressor that shipped with 2.x, uncomment the following line:
  */
-//$min_serveOptions['minifiers']['text/css'] = array('Minify_CSSmin', 'minify');
+//$min_serveOptions['minifiers'][Minify::TYPE_CSS] = array('Minify_CSS', 'minify');
 
 
 /**
@@ -186,6 +186,16 @@ $min_symlinks = array();
  * @link http://winscp.net/eng/docs/ui_login_environment#daylight_saving_time
  */
 $min_uploaderHoursBehind = 0;
+
+
+/**
+ * Advanced: you can replace some of the PHP classes Minify uses to serve requests.
+ * To do this, assign a callable to one of the elements of the $min_factories array.
+ *
+ * You can see the default implementations (and what gets passed in) in index.php.
+ */
+//$min_factories['minify'] = ... a callable
+//$min_factories['controller'] = ... a callable
 
 
 //Workaround for missing Client Hints on iOS and non-webkit browsers (read value from Cookie and simulate HTTP header)

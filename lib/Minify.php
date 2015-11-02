@@ -20,11 +20,11 @@
  * @author Stephen Clay <steve@mrclay.org>
  * @copyright 2008 Ryan Grove, Stephen Clay. All rights reserved.
  * @license http://opensource.org/licenses/bsd-license.php  New BSD License
- * @link http://code.google.com/p/minify/
+ * @link https://github.com/mrclay/minify
  */
 class Minify {
     
-    const VERSION = '2.2.0';
+    const VERSION = '3.0.0';
     const TYPE_CSS = 'text/css';
     const TYPE_HTML = 'text/html';
     // there is some debate over the ideal JS Content-Type, but this is the
@@ -85,7 +85,7 @@ class Minify {
 
             'minifiers' => array(
                 Minify::TYPE_JS => array('JSMin\\JSMin', 'minify'),
-                Minify::TYPE_CSS => array('Minify_CSS', 'minify'),
+                Minify::TYPE_CSS => array('Minify_CSSmin', 'minify'),
                 Minify::TYPE_HTML => array('Minify_HTML', 'minify'),
             ),
             'minifierOptions' => array(), // no minifier options
@@ -293,7 +293,7 @@ class Minify {
                 if ($this->options['contentType'] === self::TYPE_JS) {
                     $source->setMinifier("");
                 } elseif ($this->options['contentType'] === self::TYPE_CSS) {
-                    $source->setMinifier(array('Minify_CSS', 'minify'));
+                    $source->setMinifier(array('Minify_CSSmin', 'minify'));
                     $sourceOpts = $source->getMinifierOptions();
                     $sourceOpts['compress'] = false;
                     $source->setMinifierOptions($sourceOpts);
@@ -404,39 +404,45 @@ class Minify {
      * 
      * @param array $sources array of filepaths and/or Minify_Source objects
      * 
-     * @param array $options (optional) array of options for serve. By default
-     * these are already set: quiet = true, encodeMethod = '', lastModifiedTime = 0.
+     * @param array $options (optional) array of options for serve.
      * 
      * @return string
      */
     public function combine($sources, $options = array())
     {
-        throw new BadMethodCallException(__METHOD__ . ' needs to be rewritten/replaced');
-
-        $cache = $this->cache;
+        $tmpCache = $this->cache;
         $this->cache = new Minify_Cache_Null();
 
-        $options = array_merge(array(
+        $env = new Minify_Env();
+        $sourceFactory = new Minify_Source_Factory($env, [
+            'checkAllowDirs' => false,
+        ], $this->cache);
+        $controller = new Minify_Controller_Files($env, $sourceFactory);
+
+        $options = array_merge($options, array(
             'files' => (array)$sources,
             'quiet' => true,
             'encodeMethod' => '',
             'lastModifiedTime' => 0,
-        ), $options);
-
-        $sourceFactory = new Minify_Source_Factory($this->env);
-        $controller = new Minify_Controller_Files($this->env, $sourceFactory);
+        ));
         $out = $this->serve($controller, $options);
 
-        $this->cache = $cache;
+        $this->cache = $tmpCache;
         return $out['content'];
     }
 
     /**
-     * @param string $header
+     * Show an error page
      *
-     * @param string $url
+     * @param string $header  Full header. E.g. 'HTTP/1.0 500 Internal Server Error'
+     * @param string $url     URL to direct the user to
+     * @param string $msgHtml HTML message for the client
+     *
+     * @return void
+     * @internal This is not part of the public API and is subject to change
+     * @access private
      */
-    protected function errorExit($header, $url)
+    public function errorExit($header, $url = '', $msgHtml = '')
     {
         $url = htmlspecialchars($url, ENT_QUOTES);
         list(,$h1) = explode(' ', $header, 2);
@@ -446,7 +452,12 @@ class Minify {
         header($header, true, $code);
         header('Content-Type: text/html; charset=utf-8');
         echo "<h1>$h1</h1>";
-        echo "<p>Please see <a href='$url'>$url</a>.</p>";
+        if ($msgHtml) {
+            echo $msgHtml;
+        }
+        if ($url) {
+            echo "<p>Please see <a href='$url'>$url</a>.</p>";
+        }
         exit;
     }
 
@@ -663,9 +674,24 @@ class Minify {
 
         $type = null;
         foreach ($this->sources as $source) {
+            $sourceType = $source->getContentType();
+
+            if (!empty($options['contentType'])) {
+                // just verify sources have null content type or match the options
+                if ($sourceType !== null && $sourceType !== $options['contentType']) {
+                    // TODO better logging
+                    Minify_Logger::log('ContentType mismatch');
+
+                    $this->sources = array();
+                    return $options;
+                }
+
+                continue;
+            }
+
             if ($type === null) {
-                $type = $source->getContentType();
-            } elseif ($source->getContentType() !== $type) {
+                $type = $sourceType;
+            } elseif ($sourceType !== $type) {
 
                 // TODO better logging
                 Minify_Logger::log('ContentType mismatch');
@@ -674,10 +700,13 @@ class Minify {
                 return $options;
             }
         }
-        if (null === $type) {
-            $type = 'text/plain';
+
+        if (empty($options['contentType'])) {
+            if (null === $type) {
+                $type = 'text/plain';
+            }
+            $options['contentType'] = $type;
         }
-        $options['contentType'] = $type;
 
         // last modified is needed for caching, even if setExpires is set
         if (!isset($options['lastModifiedTime'])) {
