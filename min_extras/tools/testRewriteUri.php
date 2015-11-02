@@ -1,4 +1,7 @@
 <?php
+
+require __DIR__ . '/../../bootstrap.php';
+
 header('Content-Type: text/html;charset=utf-8');
 
 function h($str) { return htmlspecialchars($str, ENT_QUOTES); }

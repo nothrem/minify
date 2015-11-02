@@ -1,9 +1,5 @@
 <?php 
 
-if (phpversion() < 5) {
-    exit('Minify requires PHP5 or greater.');
-}
-
 // check for auto-encoding
 $encodeOutput = (function_exists('gzdeflate')
                  && !ini_get('zlib.output_compression'));
@@ -22,14 +18,12 @@ if (0 === strpos($_SERVER["SERVER_SOFTWARE"], 'Apache/')
     }
 }
 
-require dirname(__FILE__) . '/../config.php';
-
-require "$min_libPath/Minify/Loader.php";
-Minify_Loader::register();
+require __DIR__ . '/../../bootstrap.php';
+require __DIR__ . '/../config.php';
 
 if (! $min_enableBuilder) {
     header('Content-Type: text/plain');
-    die('This application is not enabled. See http://code.google.com/p/minify/wiki/BuilderApp');
+    die('This application is not enabled. See https://github.com/mrclay/minify/blob/master/docs/BuilderApp.wiki.md');
 }
 
 if (isset($min_builderPassword)
@@ -49,6 +43,7 @@ ob_start();
 <!DOCTYPE html>
 <title>Minify URI Builder</title>
 <meta name="ROBOTS" content="NOINDEX, NOFOLLOW">
+<link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
 <style>
 body {margin:1em 60px;}
 h1, h2, h3 {margin-left:-25px; position:relative;}
@@ -79,7 +74,7 @@ b {color:#c00}
 
 <p class=topWarning id=jsDidntLoad><strong>Uh Oh.</strong> Minify was unable to
     serve Javascript for this app. To troubleshoot this,
-    <a href="http://code.google.com/p/minify/wiki/Debugging">enable FirePHP debugging</a>
+    <a href="https://github.com/mrclay/minify/blob/master/docs/Debugging.wiki.md">enable FirePHP debugging</a>
     and request the <a id=builderScriptSrc href=#>Minify URL</a> directly. Hopefully the
     FirePHP console will report the cause of the error.
 </p>
@@ -111,7 +106,7 @@ and click [Update].</p>
 
 <div id=bmUris></div>
 
-<p><button id=update class=hide>Update</button></p>
+<p><button class="btn btn-primary" id=update class=hide>Update</button></p>
 
 <div id=results class=hide>
 
@@ -219,22 +214,34 @@ by Minify. E.g. <code>@import "<span class=minRoot>/min/?</span>g=css2";</code><
 <?php
 $content = ob_get_clean();
 
-// setup Minify
-Minify::setCache(
-    isset($min_cachePath) ? $min_cachePath : ''
-    ,$min_cacheFileLocking
-);
-Minify::$uploaderHoursBehind = $min_uploaderHoursBehind;
+if (!isset($min_cachePath)) {
+    $min_cachePath = '';
+}
+if (is_string($min_cachePath)) {
+    $cache = new Minify_Cache_File($min_cachePath, $min_cacheFileLocking);
+} else {
+    $cache = $min_cachePath;
+}
 
-Minify::serve('Page', array(
-    'content' => $content
-    ,'id' => __FILE__
-    ,'lastModifiedTime' => max(
+$env = new Minify_Env();
+
+$sourceFactory = new Minify_Source_Factory($env, array(
+    'uploaderHoursBehind' => $min_uploaderHoursBehind,
+));
+
+$controller = new Minify_Controller_Page($env, $sourceFactory);
+
+$server = new Minify($cache);
+
+$server->serve($controller, array(
+    'content' => $content,
+    'id' => __FILE__,
+    'lastModifiedTime' => max(
         // regenerate cache if any of these change
-        filemtime(__FILE__)
-        ,filemtime(dirname(__FILE__) . '/../config.php')
-        ,filemtime(dirname(__FILE__) . '/../lib/Minify.php')
-    )
-    ,'minifyAll' => true
-    ,'encodeOutput' => $encodeOutput
+        filemtime(__FILE__),
+        filemtime(dirname(__FILE__) . '/../config.php'),
+        filemtime(dirname(__FILE__) . '/../lib/Minify.php')
+    ),
+    'minifyAll' => true,
+    'encodeOutput' => $encodeOutput,
 ));

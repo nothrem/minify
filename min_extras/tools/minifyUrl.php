@@ -3,6 +3,8 @@
  * Fetch and minify a URL (auto-detect HTML/JS/CSS)
  */
 
+require __DIR__ . '/../../bootstrap.php';
+
 function getPost($key) {
     if (! isset($_POST[$key])) {
         return null;

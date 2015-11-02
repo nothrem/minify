@@ -1,9 +1,11 @@
-<?php 
+<?php
 /**
  * AJAX checks for zlib.output_compression
  * 
  * @package Minify
  */
+
+require __DIR__ . '/../../bootstrap.php';
 
 $_oc = ini_get('zlib.output_compression');
  
@@ -11,7 +13,7 @@ $_oc = ini_get('zlib.output_compression');
 require dirname(__FILE__) . '/../config.php';
 if (! $min_enableBuilder) {
     header('Location: /');
-    exit();
+    exit;
 }
 
 if (isset($_GET['hello'])) {
@@ -20,7 +22,6 @@ if (isset($_GET['hello'])) {
     // try to prevent double encoding (may not have an effect)
     ini_set('zlib.output_compression', '0');
     
-    require $min_libPath . '/HTTP/Encoder.php';
     HTTP_Encoder::$encodeToIe6  = true; // just in case
     $he = new HTTP_Encoder(array(
         'content' => 'World!'

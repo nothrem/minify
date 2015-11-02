@@ -12,6 +12,13 @@
  */
 $min_enableBuilder = false;
 
+
+/**
+ * Concatenate but do not minify the files. This can be used for testing.
+ */
+$min_concatOnly = false;
+
+
 /**
  * If non-empty, the Builder will be protected with HTTP Digest auth.
  * The username is "admin".
@@ -58,7 +65,6 @@ $min_cachePath = dirname(__FILE__) . '/../../cache'; // folder is /application/.
  * To use APC/Memcache/ZendPlatform for cache storage, require the class and
  * set $min_cachePath to an instance. Example below:
  */
-//require dirname(__FILE__) . '/lib/Minify/Cache/APC.php';
 //$min_cachePath = new Minify_Cache_APC();
 
 
@@ -73,6 +79,7 @@ $min_cachePath = dirname(__FILE__) . '/../../cache'; // folder is /application/.
  * second line. The third line might work on some Apache servers.
  */
 $min_documentRoot = '';
+//$min_documentRoot = dirname(dirname(dirname(__FILE__)));
 //$min_documentRoot = substr(__FILE__, 0, -15);
 //$min_documentRoot = $_SERVER['SUBDOMAIN_DOCUMENT_ROOT'];
 
@@ -105,6 +112,12 @@ $min_serveOptions['bubbleCssImports'] = true;
  * querystring, maxAge will be set to one year. E.g. /min/f=hello.css&123456
  */
 $min_serveOptions['maxAge'] = 1800;
+
+
+/**
+ * To use CSSmin (Túbal Martín's port of the YUI CSS compressor), uncomment the following line:
+ */
+//$min_serveOptions['minifiers']['text/css'] = array('Minify_CSSmin', 'minify');
 
 
 /**
@@ -175,12 +188,6 @@ $min_symlinks = array();
 $min_uploaderHoursBehind = 0;
 
 
-/**
- * Path to Minify's lib folder. If you happen to move it, change 
- * this accordingly.
- */
-$min_libPath = dirname(__FILE__) . '/lib';
-
 //Workaround for missing Client Hints on iOS and non-webkit browsers (read value from Cookie and simulate HTTP header)
 if (!array_key_exists('HTTP_DPR', $_SERVER) && array_key_exists('DPR', $_COOKIE)) { $_SERVER['HTTP_DPR'] = $_COOKIE['DPR']; }
 
@@ -242,6 +249,5 @@ function minify_processOutput($data, $type) {
 	}
 	return $data;
 };
-
 // try to disable output_compression (may not have an effect)
 ini_set('zlib.output_compression', '0');
