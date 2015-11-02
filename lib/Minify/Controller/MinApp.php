@@ -49,7 +49,7 @@ class Minify_Controller_MinApp extends Minify_Controller_Base {
             )
         );
         if ($dpr) {
-            $this->selectionId .= 'dpr=' . $dpr . "_";
+			$selectionId .= 'dpr=' . $dpr . "_";
         }
 
         if (isset($get['g'])) {
