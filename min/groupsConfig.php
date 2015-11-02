@@ -11,7 +11,20 @@
  * See http://code.google.com/p/minify/wiki/CustomSource for other ideas
  **/
 
-return array(
-    // 'js' => array('//js/file1.js', '//js/file2.js'),
-    // 'css' => array('//css/file1.css', '//css/file2.css'),
-);
+$groups = array();
+
+$css = (include '../../application/configs/css.php');
+$js  = (include '../../application/configs/js.php');
+
+unset($css['_dont_preload']);
+unset($js['_dont_preload']);
+
+foreach (array($css, $js) as $list) {
+	foreach ($list as $group => $files) {
+		if (is_array($files)) {
+			$groups[$group] = $files;
+		} //$files is string and that means it's from CDN and is not needed in Minify
+	}
+}
+
+return $groups;
